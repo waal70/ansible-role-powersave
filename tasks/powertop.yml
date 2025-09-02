@@ -1,0 +1,53 @@
+---
+- name: Block to nuke powertop if desired governor is performance
+  when: "desired_governor != 'powersave'"
+  block:
+    - name: Ensure there is no powertop
+      ansible.builtin.apt:
+        name: powertop
+        state: absent
+        purge: true
+
+    - name: Disable powertop service if it exists # noqa: ignore-errors
+      ansible.builtin.systemd:
+        name: powertop.service
+        enabled: false
+        state: stopped
+        daemon_reload: true
+        masked: true
+      ignore_errors: true
+
+    - name: Remove powertop service file if it exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/powertop.service
+        state: absent
+
+- name: Block to set powertop to autotune if desired governor is powersave or ondemand
+  when: "desired_governor == 'powersave'"
+  block:
+    - name: Ensure powertop is installed
+      ansible.builtin.apt:
+        name: powertop
+        state: present
+
+    - name: Check whether service file already is there
+      ansible.builtin.stat:
+        path: /etc/systemd/system/powertop.service
+      register: ps
+
+    - name: Place service file to run at startup for powertop
+      ansible.builtin.template:
+        src: etc/systemd/system/powertop.service.j2
+        dest: /etc/systemd/system/powertop.service
+        owner: root
+        group: root
+        mode: "0644"
+      when: not ps.stat.exists
+
+    - name: Trigger enabling of service and daemon-reload for powertop
+      ansible.builtin.systemd_service:
+        daemon-reload: true
+        enabled: true
+        state: reloaded
+        name: powertop.service
+      when: not ps.stat.exists

@@ -1,12 +1,16 @@
 ---
 # powersave Raspberry.yml
-- name: For raspberry, make sure there is no cpufrequtils and/or powertop
+- name: For raspberry, make sure there is no cpufrequtils
   ansible.builtin.apt:
-    name: "{{ apt_item }}"
+    name: cpufrequtils
     state: absent
     purge: true
-  with_items:
-    - cpufrequtils
-    - powertop
-  loop_control:
-    loop_var: apt_item
+    autoremove: true
+
+- name: Set desired governor
+  ansible.builtin.set_fact:
+    desired_governor: 'ondemand'
+
+- name: Process effects for powertop
+  ansible.builtin.include_tasks:
+    file: powertop.yml

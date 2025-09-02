@@ -1,2 +1,2 @@
 # Set by Ansible script:
-GOVERNOR="powersave"
+GOVERNOR="{{ desired_governor | default('powersave') }}"

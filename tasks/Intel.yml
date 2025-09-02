@@ -1,42 +1,25 @@
 ---
 # powersave Intel.yml
-- name: Ensure powertop is installed
-  ansible.builtin.apt:
-    name: powertop
-    state: present
-
-- name: Check whether service file already is there
-  ansible.builtin.stat:
-    path: /etc/systemd/system/powertop.service
-  register: ps
-
-- name: Place service file to run at startup for powertop
-  ansible.builtin.template:
-    src: etc/systemd/system/powertop.service.j2
-    dest: /etc/systemd/system/powertop.service
-    owner: root
-    group: root
-    mode: "0644"
-  when: not ps.stat.exists
-
-- name: Trigger enabling of service and daemon-reload for powertop
-  ansible.builtin.systemd_service:
-    daemon-reload: true
-    enabled: true
-    state: reloaded
-    name: powertop.service
-  when: not ps.stat.exists
+# Only enable powersave options on server systems with Intel CPUs
+# As we are here, presence of Intel CPU is assumed.
+# If this is a "dev_workstation", we set for max performance
 
 - name: Ensure cpufrequtils is installed
   ansible.builtin.apt:
     name: cpufrequtils
     state: present
 
-- name: Set powersave governor to powersave if currently other setting
+- name: Set desired governor based on group
+  ansible.builtin.set_fact:
+    desired_governor: "{{ 'performance' if 'dev_workstation' in group_names else 'powersave' }}"
+
+- name: Include tasks to deal with powertop
+  ansible.builtin.include_tasks: powertop.yml
+
+- name: Set powersave governor to desired value
   ansible.builtin.template:
     src: etc/default/cpufrequtils.j2
     dest: /etc/default/cpufrequtils
     owner: root
     group: root
     mode: "0644"
-  when: (cpu_governors is not search("powersave"))
