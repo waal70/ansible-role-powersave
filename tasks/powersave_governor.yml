@@ -1,5 +1,5 @@
 ---
-- name: Ensure linux-cpupower is installed
+- name: Ensure linux-cpupower is installed. As of trixie, this replaces cpufrequtils
   ansible.builtin.apt:
     name: linux-cpupower
     state: present
