@@ -8,19 +8,22 @@
         state: absent
         purge: true
 
-    - name: Disable powertop service if it exists # noqa: ignore-errors
-      ansible.builtin.systemd:
+    - name: Disable powertop service if it exists
+      ansible.builtin.systemd_service:
         name: powertop.service
         enabled: false
         state: stopped
         daemon_reload: true
         masked: true
-      ignore_errors: true
 
     - name: Remove powertop service file if it exists
       ansible.builtin.file:
         path: /etc/systemd/system/powertop.service
         state: absent
+  rescue:
+    - name: Inform the user
+      ansible.builtin.debug:
+        msg: "Powertop most likely not installed, so not stopping"
 
 - name: Block to set powertop to autotune if desired governor is powersave or ondemand
   when: "desired_governor == 'powersave'"
